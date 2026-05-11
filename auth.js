@@ -1,7 +1,7 @@
 const express = require("express");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const User = require("./User");
+const User = require("./User.js");
 
 const router = express.Router();
 
@@ -10,7 +10,6 @@ router.post("/register", async (req, res) => {
   try {
     const { email, password, referralCode } = req.body;
 
-    // بررسی ایمیل خالی
     if (!email || !password) {
       return res.status(400).json({ error: "ایمیل و رمز عبور الزامی است" });
     }
@@ -36,6 +35,16 @@ router.post("/register", async (req, res) => {
     });
 
     await user.save();
+
+    // 📌 اگر کاربر با رفرال ثبت‌نام کرده باشد، به دعوت‌کننده ۰.۵٪ سود اضافه شود
+    if (referralCode) {
+      const inviter = await User.findOne({ referralCode });
+      if (inviter) {
+        const bonus = inviter.balance * 0.005; // ۰.۵٪
+        inviter.balance += bonus;
+        await inviter.save();
+      }
+    }
 
     res.json({ message: "ثبت‌نام موفقیت‌آمیز بود", referralCode: myReferral });
   } catch (err) {
